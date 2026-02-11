@@ -185,7 +185,6 @@ const BudgetsPage = {
       </button>
     `).join('');
 
-    // Add click handlers
     selector.querySelectorAll('.theme-option').forEach(option => {
       option.addEventListener('click', () => {
         selector.querySelectorAll('.theme-option').forEach(o => o.classList.remove('selected'));
@@ -253,10 +252,8 @@ const BudgetsPage = {
       return;
     }
 
-    // Calculate spent amounts for August 2024
     const augustSpending = this.calculateSpending();
 
-    // Get latest transactions per category
     const latestTransactions = this.getLatestTransactions();
 
     let html = '';
@@ -563,15 +560,12 @@ const BudgetsPage = {
   }
 };
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   BudgetsPage.init();
 });
 
-// Export for onclick handlers
 window.BudgetsPage = BudgetsPage;
 
-// Close menus when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.budget-menu') && !e.target.closest('.budget-menu-btn')) {
     document.querySelectorAll('.budget-menu').forEach(menu => menu.classList.remove('active'));

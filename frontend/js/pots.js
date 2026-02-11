@@ -27,30 +27,22 @@ const PotsPage = {
     currentBalance: 0
   },
 
-  // === Initialization ===
   async init() {
     console.log('Initializing Pots Page...');
 
-    // Setup sidebar
     this.setupSidebar();
 
-    // Setup modals
     this.setupModals();
 
-    // Setup forms
     this.setupForms();
 
-    // Render theme selector
     this.renderThemeSelector();
 
-    // Load data
     await this.loadPots();
 
-    // Setup keyboard navigation
     this.setupKeyboardNav();
   },
 
-  // === Sidebar Setup ===
   setupSidebar() {
     const sidebar = document.getElementById('sidebar');
     const minimizeBtn = document.getElementById('minimizeBtn');

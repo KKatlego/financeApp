@@ -24,24 +24,18 @@ const RecurringPage = {
     isLoading: true
   },
 
-  // === Initialization ===
   async init() {
     console.log('Initializing Recurring Bills Page...');
 
-    // Setup sidebar
     this.setupSidebar();
 
-    // Setup event listeners
     this.setupEventListeners();
 
-    // Load recurring bills
     await this.loadRecurringBills();
 
-    // Setup keyboard navigation
     this.setupKeyboardNav();
   },
 
-  // === Sidebar Setup ===
   setupSidebar() {
     const sidebar = document.getElementById('sidebar');
     const minimizeBtn = document.getElementById('minimizeBtn');

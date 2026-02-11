@@ -1,5 +1,5 @@
 /* ============================================
-   Personal Finance App - Server (MySQL Version)
+   Personal Finance App - Server (MySQL)
    ============================================ */
 
 require('dotenv').config();
@@ -24,11 +24,9 @@ async function initApp() {
   // Test database connection
   const dbConnected = await db.testConnection();
 
-  if (dbConnected) {
-    // Initialize database tables
-    await db.initializeDatabase();
-  } else {
-    console.log('⚠️  Running in fallback mode (using local data.json)');
+  if (!dbConnected) {
+    console.error('❌ FATAL: Cannot connect to database. Exiting...');
+    process.exit(1);
   }
 
   // Start server
@@ -37,27 +35,6 @@ async function initApp() {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Visit: http://localhost:${PORT}`);
   });
-}
-
-// ============================================
-// Helper: Fallback to JSON data
-// ============================================
-const fs = require('fs');
-
-function loadLocalData() {
-  try {
-    const dataPath = path.join(__dirname, 'data', 'data.json');
-    const rawData = fs.readFileSync(dataPath, 'utf8');
-    return JSON.parse(rawData);
-  } catch (error) {
-    console.error('Error loading local data:', error);
-    return {
-      balance: { current: 0, income: 0, expenses: 0 },
-      transactions: [],
-      budgets: [],
-      pots: []
-    };
-  }
 }
 
 // ============================================
@@ -117,8 +94,7 @@ app.get('/api/data', async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('Error fetching data:', error);
-    // Fallback to local data
-    res.json(loadLocalData());
+    res.status(500).json({ error: 'Failed to fetch data from database' });
   }
 });
 
@@ -130,8 +106,8 @@ app.get('/api/balance', async (req, res) => {
     const balance = await db.queryOne('SELECT current, income, expenses FROM balance WHERE id = 1');
     res.json(balance || { current: 0, income: 0, expenses: 0 });
   } catch (error) {
-    const data = loadLocalData();
-    res.json(data.balance);
+    console.error('Error fetching balance:', error);
+    res.status(500).json({ error: 'Failed to fetch balance' });
   }
 });
 
@@ -666,21 +642,16 @@ app.get('/api/recurring-bills', async (req, res) => {
 
     const bills = await db.query(sql, params);
 
-    // Reference date: 19 August 2024
     const referenceDate = new Date('2024-08-19');
 
-    // Process bills to add calculated fields
     const processedBills = bills.map(bill => {
       const lastDate = new Date(bill.lastDate);
 
-      // Calculate next due date (assume monthly)
       const nextDue = new Date(lastDate);
       nextDue.setMonth(nextDue.getMonth() + 1);
 
-      // Check if paid in August 2024
       const isPaid = lastDate.getMonth() === 7 && lastDate.getFullYear() === 2024;
 
-      // Calculate days until due
       const daysUntilDue = Math.ceil((nextDue - referenceDate) / (1000 * 60 * 60 * 24));
       const isDueSoon = !isPaid && daysUntilDue >= 0 && daysUntilDue <= 5;
 
@@ -728,11 +699,12 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.json({
-      status: 'degraded',
+    res.status(503).json({
+      status: 'unhealthy',
       database: 'disconnected',
       uptime: process.uptime(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      error: error.message
     });
   }
 });
@@ -764,5 +736,4 @@ process.on('SIGINT', async () => {
 // ============================================
 initApp();
 
-// For cPanel deployment, export the app
 module.exports = app;
