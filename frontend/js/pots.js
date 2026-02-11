@@ -239,12 +239,13 @@ const PotsPage = {
     // Pot cards
     this.state.pots.forEach((pot, index) => {
       const percentage = pot.target > 0 ? Math.round((pot.total / pot.target) * 100) : 0;
+      const themeColor = pot.theme || '#277C78'; // Default to green if theme missing
 
       html += `
         <div class="pot-card" data-pot-id="${index}">
           <div class="pot-header">
             <div class="pot-name-section">
-              <div class="pot-color" style="background-color: ${pot.theme};"></div>
+              <div class="pot-color" style="background-color: ${themeColor};"></div>
               <span class="pot-name">${pot.name}</span>
             </div>
             <button class="pot-menu-btn" onclick="PotsPage.toggleMenu(${index})" aria-label="Pot options">
@@ -263,9 +264,9 @@ const PotsPage = {
 
           <div class="pot-progress">
             <div class="progress-bar" style="height: 0.75rem; background-color: var(--bg-beige);">
-              <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%; background-color: ${pot.theme};"></div>
+              <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%; background-color: ${themeColor};"></div>
             </div>
-            <div class="pot-percentage" style="color: ${pot.theme};">${percentage}%</div>
+            <div class="pot-percentage" style="color: ${themeColor};">${percentage}%</div>
           </div>
 
           <div class="pot-actions">
@@ -350,7 +351,8 @@ const PotsPage = {
     if (!pot) return;
 
     document.getElementById('addMoneyTitle').textContent = `Add to '${pot.name}'`;
-    document.getElementById('addPotId').value = index;
+    document.getElementById('addPotId').value = pot.id;
+    document.getElementById('addPotIndex').value = index;
     document.getElementById('amountToAdd').value = '';
     document.getElementById('addTargetAmount').textContent = Utils.formatCurrency(pot.target);
     document.getElementById('availableBalance').textContent = Utils.formatCurrency(this.state.currentBalance);
@@ -369,7 +371,8 @@ const PotsPage = {
     if (!pot) return;
 
     document.getElementById('withdrawTitle').textContent = `Withdraw from '${pot.name}'`;
-    document.getElementById('withdrawPotId').value = index;
+    document.getElementById('withdrawPotId').value = pot.id;
+    document.getElementById('withdrawPotIndex').value = index;
     document.getElementById('amountToWithdraw').value = '';
     document.getElementById('withdrawTargetAmount').textContent = Utils.formatCurrency(pot.target);
     document.getElementById('potBalance').textContent = Utils.formatCurrency(pot.total);
@@ -389,7 +392,8 @@ const PotsPage = {
 
     document.getElementById('deletePotName').textContent = pot.name;
     document.getElementById('returnAmount').textContent = pot.total.toFixed(2);
-    document.getElementById('deletePotId').value = index;
+    document.getElementById('deletePotId').value = pot.id;
+    document.getElementById('deletePotIndex').value = index;
 
     // Close menu
     document.getElementById(`menu-${index}`)?.classList.remove('active');
@@ -421,8 +425,8 @@ const PotsPage = {
 
   // === Preview Updates ===
   updateAddPreview(amount) {
-    const potId = parseInt(document.getElementById('addPotId').value);
-    const pot = this.state.pots[potId];
+    const potIndex = parseInt(document.getElementById('addPotIndex').value);
+    const pot = this.state.pots[potIndex];
     if (!pot) return;
 
     const newTotal = pot.total + amount;
@@ -430,8 +434,8 @@ const PotsPage = {
   },
 
   updateWithdrawPreview(amount) {
-    const potId = parseInt(document.getElementById('withdrawPotId').value);
-    const pot = this.state.pots[potId];
+    const potIndex = parseInt(document.getElementById('withdrawPotIndex').value);
+    const pot = this.state.pots[potIndex];
     if (!pot) return;
 
     const newTotal = pot.total - amount;
@@ -486,6 +490,7 @@ const PotsPage = {
 
   async confirmAdd() {
     const potId = parseInt(document.getElementById('addPotId').value);
+    const potIndex = parseInt(document.getElementById('addPotIndex').value);
     const amount = parseFloat(document.getElementById('amountToAdd').value);
 
     if (!amount || amount <= 0) {
@@ -500,7 +505,7 @@ const PotsPage = {
 
     try {
       const result = await API.addToPot(potId, amount);
-      this.state.pots[potId].total += amount;
+      this.state.pots[potIndex].total += amount;
       this.state.currentBalance = result.balance;
       this.state.balance.current = result.balance;
 
@@ -516,8 +521,9 @@ const PotsPage = {
 
   async confirmWithdraw() {
     const potId = parseInt(document.getElementById('withdrawPotId').value);
+    const potIndex = parseInt(document.getElementById('withdrawPotIndex').value);
     const amount = parseFloat(document.getElementById('amountToWithdraw').value);
-    const pot = this.state.pots[potId];
+    const pot = this.state.pots[potIndex];
 
     if (!amount || amount <= 0) {
       alert('Please enter a valid amount');
@@ -531,7 +537,7 @@ const PotsPage = {
 
     try {
       const result = await API.withdrawFromPot(potId, amount);
-      this.state.pots[potId].total -= amount;
+      this.state.pots[potIndex].total -= amount;
       this.state.currentBalance = result.balance;
       this.state.balance.current = result.balance;
 
@@ -547,11 +553,12 @@ const PotsPage = {
 
   async confirmDelete() {
     const deleteId = document.getElementById('deletePotId').value;
+    const deleteIndex = document.getElementById('deletePotIndex').value;
     if (deleteId === '') return;
 
     try {
       const result = await API.deletePot(parseInt(deleteId));
-      this.state.pots.splice(parseInt(deleteId), 1);
+      this.state.pots.splice(parseInt(deleteIndex), 1);
       this.state.currentBalance = result.newBalance;
       this.state.balance.current = result.newBalance;
 

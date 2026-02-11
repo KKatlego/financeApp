@@ -455,7 +455,8 @@ const BudgetsPage = {
     if (!budget) return;
 
     document.getElementById('deleteBudgetName').textContent = budget.category;
-    document.getElementById('deleteBudgetId').value = index;
+    document.getElementById('deleteBudgetId').value = budget.id;
+    document.getElementById('deleteBudgetIndex').value = index;
 
     // Close menu
     document.getElementById(`menu-${index}`)?.classList.remove('active');
@@ -530,11 +531,12 @@ const BudgetsPage = {
 
   async confirmDelete() {
     const deleteId = document.getElementById('deleteBudgetId').value;
+    const deleteIndex = document.getElementById('deleteBudgetIndex').value;
     if (deleteId === '') return;
 
     try {
       await API.deleteBudget(parseInt(deleteId));
-      this.state.budgets.splice(parseInt(deleteId), 1);
+      this.state.budgets.splice(parseInt(deleteIndex), 1);
 
       this.closeModal('deleteModal');
       this.renderBudgets();
