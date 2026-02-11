@@ -50,11 +50,13 @@ pipeline {
                         if exist deploy-package rmdir /s /q deploy-package
                         mkdir deploy-package
 
-                        REM Create exclusion file for xcopy
-                        echo node_modules\ > exclude.txt
-                        echo .env >> exclude.txt
-                        echo .git\ >> exclude.txt
-                        echo *.log >> exclude.txt
+                        REM Create exclusion file for xcopy (one pattern per line)
+                        (
+                            echo node_modules
+                            echo .env
+                            echo .git
+                            echo .log
+                        ) > exclude.txt
 
                         REM Copy frontend (all files and folders)
                         xcopy /e /i /y /exclude:exclude.txt frontend deploy-package\\frontend
