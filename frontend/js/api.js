@@ -6,9 +6,38 @@ const API = {
   // Base URL for API calls
   baseUrl: '/api',
 
+  // === Token Management ===
+  getToken() {
+    return localStorage.getItem('finance_token');
+  },
+
+  setToken(token) {
+    localStorage.setItem('finance_token', token);
+  },
+
+  removeToken() {
+    localStorage.removeItem('finance_token');
+    localStorage.removeItem('finance_user');
+  },
+
+  getUser() {
+    const user = localStorage.getItem('finance_user');
+    return user ? JSON.parse(user) : null;
+  },
+
+  setUser(user) {
+    localStorage.setItem('finance_user', JSON.stringify(user));
+  },
+
+  isAuthenticated() {
+    return !!this.getToken();
+  },
+
   // === Generic Request Methods ===
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getToken();
+
     const config = {
       headers: {
         'Content-Type': 'application/json',
@@ -17,12 +46,33 @@ const API = {
       ...options
     };
 
+    // Add Authorization header if token exists
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, config);
 
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        this.removeToken();
+        // Only redirect if not already on login/signup pages
+        if (!window.location.pathname.includes('login.html') &&
+            !window.location.pathname.includes('signup.html')) {
+          window.location.href = 'login.html';
+        }
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      // Handle 403 Forbidden
+      if (response.status === 403) {
+        throw new Error('Access denied. Invalid or expired token.');
+      }
+
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
@@ -54,9 +104,41 @@ const API = {
     return this.request(endpoint, { method: 'DELETE' });
   },
 
+  // === Authentication API ===
+  async login(email, password) {
+    const response = await this.post('/auth/login', { email, password });
+    if (response.token) {
+      this.setToken(response.token);
+      this.setUser(response.user);
+    }
+    return response;
+  },
+
+  async signup(userData) {
+    const response = await this.post('/auth/signup', userData);
+    if (response.token) {
+      this.setToken(response.token);
+      this.setUser(response.user);
+    }
+    return response;
+  },
+
+  async logout() {
+    this.removeToken();
+    window.location.href = 'login.html';
+  },
+
+  async getProfile() {
+    return this.get('/auth/me');
+  },
+
   // === Balance API ===
   async getBalance() {
     return this.get('/balance');
+  },
+
+  async updateBalance(data) {
+    return this.put('/balance', data);
   },
 
   // === Transactions API ===

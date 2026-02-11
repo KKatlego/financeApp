@@ -1,5 +1,5 @@
 /* ============================================
-   Personal Finance App - Server (MySQL)
+   Personal Finance App - Server (MySQL + Auth)
    ============================================ */
 
 require('dotenv').config();
@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./db');
+const auth = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,36 +42,143 @@ async function initApp() {
 // Routes
 // ============================================
 
-// Home page
+// Home page - redirect to login if not authenticated
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+// Login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/login.html'));
+});
+
+// Signup page
+app.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/signup.html'));
+});
+
 // ============================================
-// API: Get All Data
+// API: Authentication Routes (Public)
 // ============================================
-app.get('/api/data', async (req, res) => {
+
+// Signup - Create new user
+app.post('/api/auth/signup', async (req, res) => {
   try {
+    const { email, password, first_name, last_name } = req.body;
+
+    // Validate input
+    if (!email || !password || !first_name || !last_name) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Create user
+    const user = await auth.createUser({
+      email,
+      password,
+      first_name,
+      last_name
+    });
+
+    // Generate token
+    const token = auth.generateToken(user);
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user,
+      token
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    if (error.message === 'Email already registered') {
+      return res.status(409).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Login - Authenticate user
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const result = await auth.authenticateUser(email, password);
+
+    res.json({
+      message: 'Login successful',
+      user: result.user,
+      token: result.token
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    if (error.message === 'Invalid email or password') {
+      return res.status(401).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Get current user profile (Protected)
+app.get('/api/auth/me', auth.authenticateToken, async (req, res) => {
+  try {
+    const user = await auth.getUserById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ error: 'Failed to get user profile' });
+  }
+});
+
+// ============================================
+// API: Get All Data (Protected)
+// ============================================
+app.get('/api/data', auth.authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
     // Get balance
-    const balance = await db.queryOne('SELECT current, income, expenses FROM balance WHERE id = 1');
+    const balance = await db.queryOne(
+      'SELECT current, income, expenses FROM balance WHERE user_id = ?',
+      [userId]
+    );
 
     // Get transactions
     const transactions = await db.query(`
       SELECT id, avatar, name, category, date, amount, recurring
       FROM transactions
+      WHERE user_id = ?
       ORDER BY date DESC
-    `);
+    `, [userId]);
 
     // Get budgets
-    const budgets = await db.query('SELECT id, category, maximum, theme FROM budgets');
+    const budgets = await db.query(
+      'SELECT id, category, maximum, theme FROM budgets WHERE user_id = ?',
+      [userId]
+    );
 
     // Get pots
-    const pots = await db.query('SELECT id, name, target, total, theme FROM pots');
+    const pots = await db.query(
+      'SELECT id, name, target, total, theme FROM pots WHERE user_id = ?',
+      [userId]
+    );
 
     // Format response
     const response = {
       balance: balance || { current: 0, income: 0, expenses: 0 },
       transactions: transactions.map(t => ({
+        id: t.id,
         avatar: t.avatar,
         name: t.name,
         category: t.category,
@@ -79,11 +187,13 @@ app.get('/api/data', async (req, res) => {
         recurring: !!t.recurring
       })),
       budgets: budgets.map(b => ({
+        id: b.id,
         category: b.category,
         maximum: parseFloat(b.maximum),
         theme: b.theme
       })),
       pots: pots.map(p => ({
+        id: p.id,
         name: p.name,
         target: parseFloat(p.target),
         total: parseFloat(p.total),
@@ -99,11 +209,14 @@ app.get('/api/data', async (req, res) => {
 });
 
 // ============================================
-// API: Balance
+// API: Balance (Protected)
 // ============================================
-app.get('/api/balance', async (req, res) => {
+app.get('/api/balance', auth.authenticateToken, async (req, res) => {
   try {
-    const balance = await db.queryOne('SELECT current, income, expenses FROM balance WHERE id = 1');
+    const balance = await db.queryOne(
+      'SELECT current, income, expenses FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
     res.json(balance || { current: 0, income: 0, expenses: 0 });
   } catch (error) {
     console.error('Error fetching balance:', error);
@@ -111,16 +224,19 @@ app.get('/api/balance', async (req, res) => {
   }
 });
 
-app.put('/api/balance', async (req, res) => {
+app.put('/api/balance', auth.authenticateToken, async (req, res) => {
   try {
     const { current, income, expenses } = req.body;
 
     await db.query(
-      'UPDATE balance SET current = ?, income = ?, expenses = ? WHERE id = 1',
-      [current, income, expenses]
+      'UPDATE balance SET current = ?, income = ?, expenses = ? WHERE user_id = ?',
+      [current, income, expenses, req.user.id]
     );
 
-    const balance = await db.queryOne('SELECT current, income, expenses FROM balance WHERE id = 1');
+    const balance = await db.queryOne(
+      'SELECT current, income, expenses FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
     res.json(balance);
   } catch (error) {
     console.error('Error updating balance:', error);
@@ -129,12 +245,12 @@ app.put('/api/balance', async (req, res) => {
 });
 
 // ============================================
-// API: Transactions
+// API: Transactions (Protected)
 // ============================================
-app.get('/api/transactions', async (req, res) => {
+app.get('/api/transactions', auth.authenticateToken, async (req, res) => {
   try {
-    let sql = 'SELECT id, avatar, name, category, date, amount, recurring FROM transactions WHERE 1=1';
-    const params = [];
+    let sql = 'SELECT id, avatar, name, category, date, amount, recurring FROM transactions WHERE user_id = ?';
+    const params = [req.user.id];
 
     // Filter by category
     if (req.query.category && req.query.category !== 'All Transactions') {
@@ -212,11 +328,11 @@ app.get('/api/transactions', async (req, res) => {
   }
 });
 
-app.get('/api/transactions/:id', async (req, res) => {
+app.get('/api/transactions/:id', auth.authenticateToken, async (req, res) => {
   try {
     const transaction = await db.queryOne(
-      'SELECT id, avatar, name, category, date, amount, recurring FROM transactions WHERE id = ?',
-      [req.params.id]
+      'SELECT id, avatar, name, category, date, amount, recurring FROM transactions WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
     );
 
     if (!transaction) {
@@ -236,33 +352,37 @@ app.get('/api/transactions/:id', async (req, res) => {
 });
 
 // ============================================
-// API: Budgets
+// API: Budgets (Protected)
 // ============================================
-app.get('/api/budgets', async (req, res) => {
+app.get('/api/budgets', auth.authenticateToken, async (req, res) => {
   try {
-    // Get all budgets
-    const budgets = await db.query('SELECT id, category, maximum, theme FROM budgets');
+    // Get all budgets for user
+    const budgets = await db.query(
+      'SELECT id, category, maximum, theme FROM budgets WHERE user_id = ?',
+      [req.user.id]
+    );
 
-    // Calculate spent amount for each budget (August 2024)
+    // Calculate spent amount for each budget (current month)
     const budgetsWithSpending = await Promise.all(budgets.map(async (budget) => {
-      // Get spent amount for August 2024
+      // Get spent amount for current month
       const spentResult = await db.queryOne(`
         SELECT COALESCE(SUM(ABS(amount)), 0) as spent
         FROM transactions
         WHERE category = ?
+        AND user_id = ?
         AND amount < 0
-        AND MONTH(date) = 8
-        AND YEAR(date) = 2024
-      `, [budget.category]);
+        AND MONTH(date) = MONTH(CURRENT_DATE)
+        AND YEAR(date) = YEAR(CURRENT_DATE)
+      `, [budget.category, req.user.id]);
 
       // Get latest 3 transactions in this category
       const latestTransactions = await db.query(`
         SELECT id, avatar, name, category, date, amount, recurring
         FROM transactions
-        WHERE category = ?
+        WHERE category = ? AND user_id = ?
         ORDER BY date DESC
         LIMIT 3
-      `, [budget.category]);
+      `, [budget.category, req.user.id]);
 
       return {
         id: budget.id,
@@ -271,6 +391,7 @@ app.get('/api/budgets', async (req, res) => {
         theme: budget.theme,
         spent: parseFloat(spentResult.spent) || 0,
         latestTransactions: latestTransactions.map(t => ({
+          id: t.id,
           avatar: t.avatar,
           name: t.name,
           category: t.category,
@@ -288,7 +409,7 @@ app.get('/api/budgets', async (req, res) => {
   }
 });
 
-app.post('/api/budgets', async (req, res) => {
+app.post('/api/budgets', auth.authenticateToken, async (req, res) => {
   try {
     const { category, maximum, theme } = req.body;
 
@@ -296,15 +417,18 @@ app.post('/api/budgets', async (req, res) => {
       return res.status(400).json({ error: 'Category, maximum, and theme are required' });
     }
 
-    // Check if budget for this category already exists
-    const existing = await db.queryOne('SELECT id FROM budgets WHERE category = ?', [category]);
+    // Check if budget for this category already exists for this user
+    const existing = await db.queryOne(
+      'SELECT id FROM budgets WHERE category = ? AND user_id = ?',
+      [category, req.user.id]
+    );
     if (existing) {
       return res.status(400).json({ error: 'Budget for this category already exists' });
     }
 
     const result = await db.insert(
-      'INSERT INTO budgets (category, maximum, theme) VALUES (?, ?, ?)',
-      [category, maximum, theme]
+      'INSERT INTO budgets (category, maximum, theme, user_id) VALUES (?, ?, ?, ?)',
+      [category, maximum, theme, req.user.id]
     );
 
     res.status(201).json({ id: result, category, maximum: parseFloat(maximum), theme });
@@ -314,7 +438,7 @@ app.post('/api/budgets', async (req, res) => {
   }
 });
 
-app.put('/api/budgets/:id', async (req, res) => {
+app.put('/api/budgets/:id', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { category, maximum, theme } = req.body;
@@ -340,10 +464,10 @@ app.put('/api/budgets/:id', async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    params.push(id);
+    params.push(id, req.user.id);
 
     const affectedRows = await db.update(
-      `UPDATE budgets SET ${updates.join(', ')} WHERE id = ?`,
+      `UPDATE budgets SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
       params
     );
 
@@ -351,7 +475,10 @@ app.put('/api/budgets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Budget not found' });
     }
 
-    const budget = await db.queryOne('SELECT id, category, maximum, theme FROM budgets WHERE id = ?', [id]);
+    const budget = await db.queryOne(
+      'SELECT id, category, maximum, theme FROM budgets WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
     res.json({ ...budget, maximum: parseFloat(budget.maximum) });
   } catch (error) {
     console.error('Error updating budget:', error);
@@ -359,11 +486,14 @@ app.put('/api/budgets/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/budgets/:id', async (req, res) => {
+app.delete('/api/budgets/:id', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const affectedRows = await db.deleteRecord('DELETE FROM budgets WHERE id = ?', [id]);
+    const affectedRows = await db.deleteRecord(
+      'DELETE FROM budgets WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
 
     if (affectedRows === 0) {
       return res.status(404).json({ error: 'Budget not found' });
@@ -377,11 +507,14 @@ app.delete('/api/budgets/:id', async (req, res) => {
 });
 
 // ============================================
-// API: Pots
+// API: Pots (Protected)
 // ============================================
-app.get('/api/pots', async (req, res) => {
+app.get('/api/pots', auth.authenticateToken, async (req, res) => {
   try {
-    const pots = await db.query('SELECT id, name, target, total, theme FROM pots');
+    const pots = await db.query(
+      'SELECT id, name, target, total, theme FROM pots WHERE user_id = ?',
+      [req.user.id]
+    );
 
     const potsWithProgress = pots.map(pot => ({
       id: pot.id,
@@ -399,7 +532,7 @@ app.get('/api/pots', async (req, res) => {
   }
 });
 
-app.post('/api/pots', async (req, res) => {
+app.post('/api/pots', auth.authenticateToken, async (req, res) => {
   try {
     const { name, target, total, theme } = req.body;
 
@@ -408,8 +541,8 @@ app.post('/api/pots', async (req, res) => {
     }
 
     const result = await db.insert(
-      'INSERT INTO pots (name, target, total, theme) VALUES (?, ?, ?, ?)',
-      [name, target, total || 0, theme]
+      'INSERT INTO pots (name, target, total, theme, user_id) VALUES (?, ?, ?, ?, ?)',
+      [name, target, total || 0, theme, req.user.id]
     );
 
     res.status(201).json({
@@ -425,7 +558,7 @@ app.post('/api/pots', async (req, res) => {
   }
 });
 
-app.put('/api/pots/:id', async (req, res) => {
+app.put('/api/pots/:id', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, target, total, theme } = req.body;
@@ -455,10 +588,10 @@ app.put('/api/pots/:id', async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    params.push(id);
+    params.push(id, req.user.id);
 
     const affectedRows = await db.update(
-      `UPDATE pots SET ${updates.join(', ')} WHERE id = ?`,
+      `UPDATE pots SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
       params
     );
 
@@ -466,7 +599,10 @@ app.put('/api/pots/:id', async (req, res) => {
       return res.status(404).json({ error: 'Pot not found' });
     }
 
-    const pot = await db.queryOne('SELECT id, name, target, total, theme FROM pots WHERE id = ?', [id]);
+    const pot = await db.queryOne(
+      'SELECT id, name, target, total, theme FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
     res.json({
       ...pot,
       target: parseFloat(pot.target),
@@ -478,12 +614,15 @@ app.put('/api/pots/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/pots/:id', async (req, res) => {
+app.delete('/api/pots/:id', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
     // Get pot details before deleting
-    const pot = await db.queryOne('SELECT total FROM pots WHERE id = ?', [id]);
+    const pot = await db.queryOne(
+      'SELECT total FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
 
     if (!pot) {
       return res.status(404).json({ error: 'Pot not found' });
@@ -491,15 +630,18 @@ app.delete('/api/pots/:id', async (req, res) => {
 
     // Return funds to balance
     await db.update(
-      'UPDATE balance SET current = current + ? WHERE id = 1',
-      [pot.total]
+      'UPDATE balance SET current = current + ? WHERE user_id = ?',
+      [pot.total, req.user.id]
     );
 
     // Delete the pot
-    await db.deleteRecord('DELETE FROM pots WHERE id = ?', [id]);
+    await db.deleteRecord('DELETE FROM pots WHERE id = ? AND user_id = ?', [id, req.user.id]);
 
     // Get new balance
-    const balance = await db.queryOne('SELECT current FROM balance WHERE id = 1');
+    const balance = await db.queryOne(
+      'SELECT current FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
 
     res.json({
       message: 'Pot deleted successfully',
@@ -512,7 +654,7 @@ app.delete('/api/pots/:id', async (req, res) => {
   }
 });
 
-app.post('/api/pots/:id/add', async (req, res) => {
+app.post('/api/pots/:id/add', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
@@ -523,20 +665,44 @@ app.post('/api/pots/:id/add', async (req, res) => {
     }
 
     // Check balance
-    const balance = await db.queryOne('SELECT current FROM balance WHERE id = 1');
+    const balance = await db.queryOne(
+      'SELECT current FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
     if (addAmount > balance.current) {
       return res.status(400).json({ error: 'Insufficient balance' });
     }
 
+    // Check pot exists and belongs to user
+    const potExists = await db.queryOne(
+      'SELECT id FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    if (!potExists) {
+      return res.status(404).json({ error: 'Pot not found' });
+    }
+
     // Deduct from balance
-    await db.update('UPDATE balance SET current = current - ? WHERE id = 1', [addAmount]);
+    await db.update(
+      'UPDATE balance SET current = current - ? WHERE user_id = ?',
+      [addAmount, req.user.id]
+    );
 
     // Add to pot
-    await db.update('UPDATE pots SET total = total + ? WHERE id = ?', [addAmount, id]);
+    await db.update(
+      'UPDATE pots SET total = total + ? WHERE id = ? AND user_id = ?',
+      [addAmount, id, req.user.id]
+    );
 
     // Get updated pot and balance
-    const pot = await db.queryOne('SELECT id, name, target, total, theme FROM pots WHERE id = ?', [id]);
-    const newBalance = await db.queryOne('SELECT current FROM balance WHERE id = 1');
+    const pot = await db.queryOne(
+      'SELECT id, name, target, total, theme FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    const newBalance = await db.queryOne(
+      'SELECT current FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
 
     res.json({
       pot: {
@@ -552,7 +718,7 @@ app.post('/api/pots/:id/add', async (req, res) => {
   }
 });
 
-app.post('/api/pots/:id/withdraw', async (req, res) => {
+app.post('/api/pots/:id/withdraw', auth.authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
@@ -563,7 +729,10 @@ app.post('/api/pots/:id/withdraw', async (req, res) => {
     }
 
     // Check pot balance
-    const pot = await db.queryOne('SELECT total FROM pots WHERE id = ?', [id]);
+    const pot = await db.queryOne(
+      'SELECT total FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
     if (!pot) {
       return res.status(404).json({ error: 'Pot not found' });
     }
@@ -572,14 +741,26 @@ app.post('/api/pots/:id/withdraw', async (req, res) => {
     }
 
     // Deduct from pot
-    await db.update('UPDATE pots SET total = total - ? WHERE id = ?', [withdrawAmount, id]);
+    await db.update(
+      'UPDATE pots SET total = total - ? WHERE id = ? AND user_id = ?',
+      [withdrawAmount, id, req.user.id]
+    );
 
     // Add to balance
-    await db.update('UPDATE balance SET current = current + ? WHERE id = 1', [withdrawAmount]);
+    await db.update(
+      'UPDATE balance SET current = current + ? WHERE user_id = ?',
+      [withdrawAmount, req.user.id]
+    );
 
     // Get updated pot and balance
-    const updatedPot = await db.queryOne('SELECT id, name, target, total, theme FROM pots WHERE id = ?', [id]);
-    const newBalance = await db.queryOne('SELECT current FROM balance WHERE id = 1');
+    const updatedPot = await db.queryOne(
+      'SELECT id, name, target, total, theme FROM pots WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    const newBalance = await db.queryOne(
+      'SELECT current FROM balance WHERE user_id = ?',
+      [req.user.id]
+    );
 
     res.json({
       pot: {
@@ -596,18 +777,18 @@ app.post('/api/pots/:id/withdraw', async (req, res) => {
 });
 
 // ============================================
-// API: Recurring Bills
+// API: Recurring Bills (Protected)
 // ============================================
-app.get('/api/recurring-bills', async (req, res) => {
+app.get('/api/recurring-bills', auth.authenticateToken, async (req, res) => {
   try {
-    // Get unique recurring transactions
+    // Get unique recurring transactions for user
     let sql = `
       SELECT
         id, avatar, name, category, amount, date as lastDate
       FROM transactions
-      WHERE recurring = TRUE
+      WHERE recurring = TRUE AND user_id = ?
     `;
-    const params = [];
+    const params = [req.user.id];
 
     // Search filter
     if (req.query.search) {
@@ -642,7 +823,7 @@ app.get('/api/recurring-bills', async (req, res) => {
 
     const bills = await db.query(sql, params);
 
-    const referenceDate = new Date('2024-08-19');
+    const referenceDate = new Date();
 
     const processedBills = bills.map(bill => {
       const lastDate = new Date(bill.lastDate);
@@ -650,7 +831,9 @@ app.get('/api/recurring-bills', async (req, res) => {
       const nextDue = new Date(lastDate);
       nextDue.setMonth(nextDue.getMonth() + 1);
 
-      const isPaid = lastDate.getMonth() === 7 && lastDate.getFullYear() === 2024;
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const isPaid = lastDate.getMonth() === currentMonth && lastDate.getFullYear() === currentYear;
 
       const daysUntilDue = Math.ceil((nextDue - referenceDate) / (1000 * 60 * 60 * 24));
       const isDueSoon = !isPaid && daysUntilDue >= 0 && daysUntilDue <= 5;
@@ -687,7 +870,7 @@ app.get('/api/recurring-bills', async (req, res) => {
 });
 
 // ============================================
-// Health Check
+// Health Check (Public)
 // ============================================
 app.get('/api/health', async (req, res) => {
   try {
