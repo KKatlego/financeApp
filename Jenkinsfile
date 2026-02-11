@@ -20,8 +20,16 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing backend dependencies...'
-                bat 'cd backend && npm install --production'
+                bat 'cd backend && npm install'
                 echo 'Dependencies installed successfully!'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running unit tests...'
+                bat 'cd backend && npm test'
+                echo 'All tests passed!'
             }
         }
 
@@ -29,13 +37,6 @@ pipeline {
             steps {
                 echo 'Building application...'
                 echo 'Build completed successfully!'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-                echo "All tests passed!"
             }
         }
 

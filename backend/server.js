@@ -30,12 +30,14 @@ async function initApp() {
     process.exit(1);
   }
 
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Visit: http://localhost:${PORT}`);
-  });
+  // Start server (skip in test environment)
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Visit: http://localhost:${PORT}`);
+    });
+  }
 }
 
 // ============================================
@@ -917,6 +919,8 @@ process.on('SIGINT', async () => {
 // ============================================
 // Start Application
 // ============================================
-initApp();
+if (process.env.NODE_ENV !== 'test') {
+  initApp();
+}
 
 module.exports = app;
