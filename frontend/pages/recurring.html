@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
+  <title>Personal Finance App - Recurring Bills</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* Recurring Bills specific styles */
+    .bills-header {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+
+    .bills-summary-card {
+      background: var(--bg-sidebar);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      color: var(--text-white);
+    }
+
+    .bills-summary-icon {
+      width: 3rem;
+      height: 3rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .bills-summary-label {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: var(--space-2);
+    }
+
+    .bills-summary-total {
+      font-size: var(--text-3xl);
+      font-weight: var(--font-bold);
+    }
+
+    .bills-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .breakdown-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: var(--bg-white);
+      border-radius: var(--radius-xl);
+    }
+
+    .breakdown-indicator {
+      width: 4px;
+      height: 2.5rem;
+      border-radius: var(--radius-full);
+    }
+
+    .breakdown-indicator.paid {
+      background-color: var(--color-green);
+    }
+
+    .breakdown-indicator.upcoming {
+      background-color: var(--color-yellow);
+    }
+
+    .breakdown-indicator.due {
+      background-color: var(--color-red);
+    }
+
+    .breakdown-info {
+      flex: 1;
+    }
+
+    .breakdown-label {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-1);
+    }
+
+    .breakdown-amount {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+    }
+
+    .breakdown-count {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    /* Bills list */
+    .bills-list-section {
+      background: var(--bg-white);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .bills-list-header {
+      padding: var(--space-4) var(--space-6);
+      background: var(--bg-beige);
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-4);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--text-secondary);
+    }
+
+    .bill-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-6);
+      border-bottom: 1px solid var(--border-light);
+      align-items: center;
+      transition: background-color var(--transition-fast);
+    }
+
+    .bill-item:last-child {
+      border-bottom: none;
+    }
+
+    .bill-item:hover {
+      background-color: var(--bg-beige);
+    }
+
+    .bill-name {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .bill-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+    }
+
+    .bill-vendor {
+      font-weight: var(--font-medium);
+    }
+
+    .bill-status {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+    }
+
+    .bill-status.paid {
+      background-color: var(--color-green-light);
+      color: var(--color-green);
+    }
+
+    .bill-status.pending {
+      background-color: var(--color-yellow-light);
+      color: var(--color-yellow);
+    }
+
+    .bill-status.due-soon {
+      background-color: var(--color-red-light);
+      color: var(--color-red);
+    }
+
+    .bill-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background-color: currentColor;
+    }
+
+    .bill-date {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .bill-amount {
+      font-weight: var(--font-bold);
+      text-align: right;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .bills-header {
+        grid-template-columns: 1fr;
+      }
+
+      .bills-list-header,
+      .bill-item {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .bills-list-header > *:nth-child(2),
+      .bill-item > *:nth-child(2) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .bills-list-header {
+        display: none;
+      }
+
+      .bill-item {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+      }
+
+      .bill-item > *:nth-child(3),
+      .bill-item > *:nth-child(4) {
+        display: flex;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="../assets/images/logo-large.svg" alt="" aria-hidden="true">
+          <span>finance</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item" role="none">
+            <a href="../index.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+              <span>Overview</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="transactions.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+              <span>Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="budgets.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+              <span>Budgets</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pots.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+              <span>Pots</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="recurring.html" class="nav-link active" role="menuitem" aria-current="page">
+              <img src="../assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+              <span>Recurring Bills</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="minimize-btn" id="minimizeBtn" aria-label="Toggle sidebar" aria-expanded="true">
+          <img src="../assets/images/icon-minimize-menu.svg" alt="" aria-hidden="true">
+          <span>Minimize Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <header class="page-header">
+        <h1 class="page-title">Recurring Bills</h1>
+      </header>
+
+      <!-- Bills Header: Summary + Breakdown -->
+      <div class="bills-header">
+        <!-- Total Bills Summary -->
+        <div class="bills-summary-card">
+          <div class="bills-summary-icon">
+            <img src="../assets/images/icon-recurring-bills.svg" alt="">
+          </div>
+          <p class="bills-summary-label">Total Bills</p>
+          <p class="bills-summary-total" id="totalBills">$0.00</p>
+        </div>
+
+        <!-- Breakdown -->
+        <div class="bills-breakdown">
+          <div class="breakdown-item">
+            <div class="breakdown-indicator paid"></div>
+            <div class="breakdown-info">
+              <p class="breakdown-label">Paid Bills</p>
+              <p class="breakdown-amount" id="paidBillsAmount">$0.00</p>
+            </div>
+            <p class="breakdown-count" id="paidBillsCount">0 bills paid</p>
+          </div>
+
+          <div class="breakdown-item">
+            <div class="breakdown-indicator upcoming"></div>
+            <div class="breakdown-info">
+              <p class="breakdown-label">Total Upcoming</p>
+              <p class="breakdown-amount" id="upcomingBillsAmount">$0.00</p>
+            </div>
+            <p class="breakdown-count" id="upcomingBillsCount">0 bills upcoming</p>
+          </div>
+
+          <div class="breakdown-item">
+            <div class="breakdown-indicator due"></div>
+            <div class="breakdown-info">
+              <p class="breakdown-label">Due Soon</p>
+              <p class="breakdown-amount" id="dueSoonAmount">$0.00</p>
+            </div>
+            <p class="breakdown-count" id="dueSoonCount">0 bills due soon</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Section -->
+      <section class="card" style="margin-bottom: var(--space-6);" aria-label="Bill filters">
+        <div class="filters-row">
+          <!-- Search -->
+          <div class="filter-group" style="flex: 1; max-width: 320px;">
+            <label for="searchBills" class="filter-label">Search bills</label>
+            <div class="search-container" style="width: 100%;">
+              <img src="../assets/images/icon-search.svg" alt="" class="search-icon">
+              <input
+                type="text"
+                id="searchBills"
+                class="search-input"
+                placeholder="Search vendor name..."
+                aria-label="Search bills by vendor name"
+              >
+            </div>
+          </div>
+
+          <!-- Sort -->
+          <div class="filter-group">
+            <label for="sortBills" class="filter-label">Sort by</label>
+            <select id="sortBills" class="form-select filter-select" aria-label="Sort bills">
+              <option value="latest">Latest</option>
+              <option value="oldest">Oldest</option>
+              <option value="a-z">A to Z</option>
+              <option value="z-a">Z to A</option>
+              <option value="highest">Highest</option>
+              <option value="lowest">Lowest</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bills List -->
+      <section class="bills-list-section" aria-label="Recurring bills list">
+        <!-- Table Header -->
+        <div class="bills-list-header">
+          <span>Bill Title</span>
+          <span>Status</span>
+          <span>Due Date</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Bills List -->
+        <div id="billsList" role="list" aria-live="polite">
+          <!-- Populated by JS -->
+          <div class="loading-state" style="padding: var(--space-8); text-align: center;">
+            <p class="text-gray">Loading recurring bills...</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/recurring.js"></script>
+</body>
+</html>

@@ -902,3 +902,52 @@ body {
 .justify-between { justify-content: space-between; }
 .gap-2 { gap: var(--space-2); }
 .gap-4 { gap: var(--space-4); }
+
+/* === Bill Stats (Overview Page) === */
+.bill-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--bg-beige);
+  border-radius: var(--radius-lg);
+}
+
+.bill-stat-indicator {
+  width: 4px;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+}
+
+.bill-stat-indicator.paid {
+  background-color: var(--color-green);
+}
+
+.bill-stat-indicator.upcoming {
+  background-color: var(--color-yellow);
+}
+
+.bill-stat-indicator.due {
+  background-color: var(--color-red);
+}
+
+.bill-stat-info {
+  flex: 1;
+}
+
+.bill-stat-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.bill-stat-amount {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+}
+
+.bills-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
