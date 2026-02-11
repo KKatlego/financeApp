@@ -1,0 +1,14 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Redirect HTTP to HTTPS (uncomment if needed)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Serve frontend files
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /frontend/$1 [L]
+
+# API routes will be handled by the Node.js app

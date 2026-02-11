@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
+  <title>Personal Finance App - Budgets</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* Budget-specific styles */
+    .budgets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .budget-card {
+      background: var(--bg-white);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      position: relative;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .budget-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .budget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-4);
+    }
+
+    .budget-category {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .budget-color {
+      width: 1rem;
+      height: 1rem;
+      border-radius: var(--radius-full);
+    }
+
+    .budget-name {
+      font-weight: var(--font-bold);
+      font-size: var(--text-lg);
+    }
+
+    .budget-menu-btn {
+      background: transparent;
+      border: none;
+      padding: var(--space-2);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: background-color var(--transition-fast);
+    }
+
+    .budget-menu-btn:hover {
+      background-color: var(--bg-beige);
+    }
+
+    .budget-menu {
+      position: absolute;
+      top: 3rem;
+      right: var(--space-4);
+      background: var(--bg-white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-2);
+      z-index: var(--z-dropdown);
+      display: none;
+      min-width: 120px;
+    }
+
+    .budget-menu.active {
+      display: block;
+    }
+
+    .budget-menu-item {
+      display: block;
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    .budget-menu-item:hover {
+      background-color: var(--bg-beige);
+    }
+
+    .budget-menu-item.delete {
+      color: var(--color-red);
+    }
+
+    .budget-amounts {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-3);
+    }
+
+    .budget-spent {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+    }
+
+    .budget-maximum {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .budget-progress {
+      margin-bottom: var(--space-4);
+    }
+
+    .budget-latest {
+      border-top: 1px solid var(--border-light);
+      padding-top: var(--space-4);
+    }
+
+    .budget-latest-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+    }
+
+    .budget-latest-title {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .budget-latest-link {
+      font-size: var(--text-sm);
+      color: var(--text-gray);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .budget-latest-link:hover {
+      color: var(--text-primary);
+    }
+
+    .latest-transaction {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-2) 0;
+    }
+
+    .latest-transaction-name {
+      font-size: var(--text-sm);
+    }
+
+    .latest-transaction-amount {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+    }
+
+    /* Theme colors for budgets */
+    .theme-green { background-color: #277C78; }
+    .theme-yellow { background-color: #D19900; }
+    .theme-cyan { background-color: #82C9D7; }
+    .theme-navy { background-color: #626070; }
+    .theme-red { background-color: #C94736; }
+    .theme-purple { background-color: #826CB0; }
+    .theme-turquoise { background-color: #008C76; }
+    .theme-brown { background-color: #93674F; }
+    .theme-magenta { background-color: #AF81CD; }
+    .theme-blue { background-color: #647484; }
+
+    /* Theme selector */
+    .theme-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
+    .theme-option {
+      width: 2rem;
+      height: 2rem;
+      border-radius: var(--radius-full);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .theme-option:hover {
+      transform: scale(1.1);
+    }
+
+    .theme-option.selected {
+      border-color: var(--text-primary);
+    }
+
+    /* Category selector */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-2);
+    }
+
+    .category-option {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .category-option:hover {
+      border-color: var(--border-medium);
+      background-color: var(--bg-beige);
+    }
+
+    .category-option.selected {
+      border-color: var(--text-primary);
+      background-color: var(--bg-beige);
+    }
+
+    .category-option input {
+      display: none;
+    }
+
+    .category-dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: var(--radius-full);
+    }
+
+    /* Add budget button */
+    .add-budget-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-5);
+      border: 2px dashed var(--border-medium);
+      border-radius: var(--radius-xl);
+      background: transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 200px;
+    }
+
+    .add-budget-btn:hover {
+      border-color: var(--text-primary);
+      background-color: var(--bg-beige);
+    }
+
+    .add-budget-btn span {
+      font-weight: var(--font-medium);
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="../assets/images/logo-large.svg" alt="" aria-hidden="true">
+          <span>finance</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item" role="none">
+            <a href="../index.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+              <span>Overview</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="transactions.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+              <span>Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="budgets.html" class="nav-link active" role="menuitem" aria-current="page">
+              <img src="../assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+              <span>Budgets</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pots.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+              <span>Pots</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="recurring.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+              <span>Recurring Bills</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="minimize-btn" id="minimizeBtn" aria-label="Toggle sidebar" aria-expanded="true">
+          <img src="../assets/images/icon-minimize-menu.svg" alt="" aria-hidden="true">
+          <span>Minimize Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <header class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 class="page-title">Budgets</h1>
+        <button class="btn btn-primary" id="addBudgetBtn">
+          + Add New Budget
+        </button>
+      </header>
+
+      <!-- Budgets Grid -->
+      <div id="budgetsGrid" class="budgets-grid">
+        <!-- Populated by JS -->
+        <div class="loading-state" style="grid-column: 1 / -1; padding: var(--space-8); text-align: center;">
+          <p class="text-gray">Loading budgets...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Budget Modal -->
+  <div class="modal-overlay" id="budgetModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Add New Budget</h2>
+        <button class="modal-close" id="closeModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <form id="budgetForm">
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+          Choose a category to set a spending budget. These categories can help you monitor spending.
+        </p>
+
+        <!-- Category Selection -->
+        <div class="form-group">
+          <label class="form-label">Budget Category</label>
+          <div id="categoryGrid" class="category-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Maximum Spend -->
+        <div class="form-group">
+          <label class="form-label" for="maximumSpend">Maximum Spend</label>
+          <input
+            type="number"
+            id="maximumSpend"
+            class="form-input"
+            placeholder="e.g. 100.00"
+            step="0.01"
+            min="0"
+            required
+          >
+        </div>
+
+        <!-- Theme Selection -->
+        <div class="form-group">
+          <label class="form-label">Theme</label>
+          <div id="themeSelector" class="theme-selector">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <input type="hidden" id="editBudgetId" value="">
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Add Budget</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal" aria-hidden="true">
+    <div class="modal" role="alertdialog" aria-labelledby="deleteModalTitle" aria-describedby="deleteModalDesc">
+      <div class="modal-header">
+        <h2 class="modal-title" id="deleteModalTitle">Delete Budget</h2>
+        <button class="modal-close" id="closeDeleteModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <p id="deleteModalDesc" style="color: var(--text-secondary); margin-bottom: var(--space-6);">
+        Are you sure you want to delete '<span id="deleteBudgetName"></span>'? This action cannot be reversed, and all the data inside it will be removed forever.
+      </p>
+
+      <input type="hidden" id="deleteBudgetId">
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">No, Go Back</button>
+        <button type="button" class="btn btn-primary" style="background-color: var(--color-red);" id="confirmDeleteBtn">
+          Yes, Confirm Deletion
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/budgets.js"></script>
+</body>
+</html>

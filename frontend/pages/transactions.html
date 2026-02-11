@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
+  <title>Personal Finance App - Transactions</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="../assets/images/logo-large.svg" alt="" aria-hidden="true">
+          <span>finance</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item" role="none">
+            <a href="../index.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+              <span>Overview</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="transactions.html" class="nav-link active" role="menuitem" aria-current="page">
+              <img src="../assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+              <span>Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="budgets.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+              <span>Budgets</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pots.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+              <span>Pots</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="recurring.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+              <span>Recurring Bills</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="minimize-btn" id="minimizeBtn" aria-label="Toggle sidebar" aria-expanded="true">
+          <img src="../assets/images/icon-minimize-menu.svg" alt="" aria-hidden="true">
+          <span>Minimize Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <header class="page-header">
+        <h1 class="page-title">Transactions</h1>
+      </header>
+
+      <!-- Filters Section -->
+      <section class="card filters-card" aria-label="Transaction filters">
+        <div class="filters-row">
+          <!-- Search -->
+          <div class="filter-group" style="flex: 1; max-width: 320px;">
+            <label for="searchInput" class="filter-label">Search transactions</label>
+            <div class="search-container" style="width: 100%;">
+              <img src="../assets/images/icon-search.svg" alt="" class="search-icon">
+              <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Search transaction name..."
+                aria-label="Search transactions by name"
+              >
+            </div>
+          </div>
+
+          <!-- Sort -->
+          <div class="filter-group">
+            <label for="sortSelect" class="filter-label">Sort by</label>
+            <select id="sortSelect" class="form-select filter-select" aria-label="Sort transactions">
+              <option value="latest">Latest</option>
+              <option value="oldest">Oldest</option>
+              <option value="a-z">A to Z</option>
+              <option value="z-a">Z to A</option>
+              <option value="highest">Highest</option>
+              <option value="lowest">Lowest</option>
+            </select>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="filter-group">
+            <label for="categorySelect" class="filter-label">Category</label>
+            <select id="categorySelect" class="form-select filter-select" aria-label="Filter by category">
+              <option value="All Transactions">All Transactions</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Bills">Bills</option>
+              <option value="Groceries">Groceries</option>
+              <option value="Dining Out">Dining Out</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Personal Care">Personal Care</option>
+              <option value="Education">Education</option>
+              <option value="Lifestyle">Lifestyle</option>
+              <option value="Shopping">Shopping</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transactions Table -->
+      <section class="card" aria-label="Transactions list">
+        <!-- Table Header -->
+        <div class="transactions-header" style="
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: var(--space-4);
+          padding: var(--space-4);
+          background-color: var(--bg-beige);
+          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+          font-size: var(--text-sm);
+          font-weight: var(--font-medium);
+          color: var(--text-secondary);
+        ">
+          <span>Recipient/Sender</span>
+          <span>Category</span>
+          <span>Transaction Date</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Transaction List -->
+        <div id="transactionList" class="transaction-list-container" role="list" aria-live="polite">
+          <!-- Populated by JS -->
+          <div class="loading-state" style="padding: var(--space-8); text-align: center;">
+            <p class="text-gray">Loading transactions...</p>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer" style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: var(--space-4);
+          border-top: 1px solid var(--border-light);
+        ">
+          <p id="paginationInfo" class="text-gray" style="font-size: var(--text-sm);">
+            Showing 1-10 of 50 transactions
+          </p>
+          <div class="pagination" id="pagination" role="navigation" aria-label="Pagination">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/transactions.js"></script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
+  <title>Personal Finance App - Pots</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    /* Pots-specific styles */
+    .pots-summary {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      padding: var(--space-6);
+      background: var(--bg-white);
+      border-radius: var(--radius-xl);
+      margin-bottom: var(--space-6);
+    }
+
+    .pots-summary-icon {
+      width: 4rem;
+      height: 4rem;
+      background: var(--bg-beige);
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pots-summary-info h2 {
+      font-size: var(--text-4xl);
+      font-weight: var(--font-bold);
+      color: var(--color-green);
+      margin-bottom: var(--space-1);
+    }
+
+    .pots-summary-info p {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+
+    .pots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .pot-card {
+      background: var(--bg-white);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      position: relative;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .pot-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .pot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-4);
+    }
+
+    .pot-name-section {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .pot-color {
+      width: 1rem;
+      height: 1rem;
+      border-radius: var(--radius-full);
+    }
+
+    .pot-name {
+      font-weight: var(--font-bold);
+      font-size: var(--text-lg);
+    }
+
+    .pot-menu-btn {
+      background: transparent;
+      border: none;
+      padding: var(--space-2);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: background-color var(--transition-fast);
+    }
+
+    .pot-menu-btn:hover {
+      background-color: var(--bg-beige);
+    }
+
+    .pot-menu {
+      position: absolute;
+      top: 3rem;
+      right: var(--space-4);
+      background: var(--bg-white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-2);
+      z-index: var(--z-dropdown);
+      display: none;
+      min-width: 140px;
+    }
+
+    .pot-menu.active {
+      display: block;
+    }
+
+    .pot-menu-item {
+      display: block;
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: transparent;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    .pot-menu-item:hover {
+      background-color: var(--bg-beige);
+    }
+
+    .pot-menu-item.delete {
+      color: var(--color-red);
+    }
+
+    .pot-amounts {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-3);
+    }
+
+    .pot-saved {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+    }
+
+    .pot-target {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .pot-progress {
+      margin-bottom: var(--space-4);
+    }
+
+    .pot-percentage {
+      text-align: right;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      margin-top: var(--space-2);
+    }
+
+    .pot-actions {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    .pot-action-btn {
+      flex: 1;
+      padding: var(--space-3);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      background: transparent;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      transition: all var(--transition-fast);
+    }
+
+    .pot-action-btn:hover {
+      background-color: var(--bg-beige);
+      border-color: var(--border-medium);
+    }
+
+    .pot-action-btn.add {
+      color: var(--color-green);
+    }
+
+    .pot-action-btn.withdraw {
+      color: var(--text-primary);
+    }
+
+    /* Add pot button */
+    .add-pot-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-5);
+      border: 2px dashed var(--border-medium);
+      border-radius: var(--radius-xl);
+      background: transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 200px;
+    }
+
+    .add-pot-btn:hover {
+      border-color: var(--text-primary);
+      background-color: var(--bg-beige);
+    }
+
+    .add-pot-btn span {
+      font-weight: var(--font-medium);
+      color: var(--text-secondary);
+    }
+
+    /* Amount input with preview */
+    .amount-preview {
+      background: var(--bg-beige);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .amount-preview-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+
+    .amount-preview-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .amount-preview-label {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+    }
+
+    .amount-preview-value {
+      font-weight: var(--font-bold);
+    }
+
+    .amount-preview-value.green {
+      color: var(--color-green);
+    }
+
+    /* Slider */
+    .amount-slider {
+      width: 100%;
+      margin: var(--space-4) 0;
+    }
+
+    .amount-slider input[type="range"] {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: var(--bg-beige);
+      border-radius: var(--radius-full);
+      outline: none;
+    }
+
+    .amount-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .quick-amounts {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+
+    .quick-amount-btn {
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: transparent;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .quick-amount-btn:hover {
+      background-color: var(--bg-beige);
+      border-color: var(--border-medium);
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="../assets/images/logo-large.svg" alt="" aria-hidden="true">
+          <span>finance</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item" role="none">
+            <a href="../index.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+              <span>Overview</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="transactions.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+              <span>Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="budgets.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+              <span>Budgets</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pots.html" class="nav-link active" role="menuitem" aria-current="page">
+              <img src="../assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+              <span>Pots</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="recurring.html" class="nav-link" role="menuitem">
+              <img src="../assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+              <span>Recurring Bills</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="minimize-btn" id="minimizeBtn" aria-label="Toggle sidebar" aria-expanded="true">
+          <img src="../assets/images/icon-minimize-menu.svg" alt="" aria-hidden="true">
+          <span>Minimize Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <header class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 class="page-title">Pots</h1>
+        <button class="btn btn-primary" id="addPotBtn">
+          + Add New Pot
+        </button>
+      </header>
+
+      <!-- Total Saved Summary -->
+      <div id="potsSummary" class="pots-summary">
+        <div class="pots-summary-icon">
+          <img src="../assets/images/icon-pot.svg" alt="">
+        </div>
+        <div class="pots-summary-info">
+          <h2 id="totalSaved">$0.00</h2>
+          <p>Total Saved</p>
+        </div>
+      </div>
+
+      <!-- Pots Grid -->
+      <div id="potsGrid" class="pots-grid">
+        <!-- Populated by JS -->
+        <div class="loading-state" style="grid-column: 1 / -1; padding: var(--space-8); text-align: center;">
+          <p class="text-gray">Loading pots...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Pot Modal -->
+  <div class="modal-overlay" id="potModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="potModalTitle">
+      <div class="modal-header">
+        <h2 class="modal-title" id="potModalTitle">Add New Pot</h2>
+        <button class="modal-close" id="closePotModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <form id="potForm">
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+          Create a pot to set savings targets. These can help keep you on track as you save for special purchases.
+        </p>
+
+        <!-- Pot Name -->
+        <div class="form-group">
+          <label class="form-label" for="potName">Pot Name</label>
+          <input
+            type="text"
+            id="potName"
+            class="form-input"
+            placeholder="e.g. Savings"
+            required
+            maxlength="30"
+          >
+        </div>
+
+        <!-- Target -->
+        <div class="form-group">
+          <label class="form-label" for="potTarget">Target</label>
+          <input
+            type="number"
+            id="potTarget"
+            class="form-input"
+            placeholder="e.g. 2000.00"
+            step="0.01"
+            min="1"
+            required
+          >
+        </div>
+
+        <!-- Theme Selection -->
+        <div class="form-group">
+          <label class="form-label">Theme</label>
+          <div id="themeSelector" class="theme-selector">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <input type="hidden" id="editPotId" value="">
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelPotBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitPotBtn">Add Pot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Money Modal -->
+  <div class="modal-overlay" id="addMoneyModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="addMoneyTitle">
+      <div class="modal-header">
+        <h2 class="modal-title" id="addMoneyTitle">Add to Pot</h2>
+        <button class="modal-close" id="closeAddModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+        Add money to your pot to keep it separate from your main balance. As soon as you add this money, it will be deducted from your current balance.
+      </p>
+
+      <!-- Amount Preview -->
+      <div class="amount-preview">
+        <div class="amount-preview-row">
+          <span class="amount-preview-label">New Amount</span>
+          <span class="amount-preview-value green" id="addPreviewAmount">$0.00</span>
+        </div>
+        <div class="amount-preview-row">
+          <span class="amount-preview-label">Target</span>
+          <span class="amount-preview-value" id="addTargetAmount">$0.00</span>
+        </div>
+      </div>
+
+      <input type="hidden" id="addPotId">
+
+      <!-- Amount to Add -->
+      <div class="form-group">
+        <label class="form-label" for="amountToAdd">Amount to Add</label>
+        <input
+          type="number"
+          id="amountToAdd"
+          class="form-input"
+          placeholder="0.00"
+          step="0.01"
+          min="0.01"
+          required
+        >
+      </div>
+
+      <p style="font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Available balance: <strong id="availableBalance">$0.00</strong>
+      </p>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmAddBtn">Confirm Addition</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Withdraw Modal -->
+  <div class="modal-overlay" id="withdrawModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="withdrawTitle">
+      <div class="modal-header">
+        <h2 class="modal-title" id="withdrawTitle">Withdraw from Pot</h2>
+        <button class="modal-close" id="closeWithdrawModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+        Withdraw from your pot to put money back in your main balance. This will reduce the amount you have in this pot.
+      </p>
+
+      <!-- Amount Preview -->
+      <div class="amount-preview">
+        <div class="amount-preview-row">
+          <span class="amount-preview-label">New Amount</span>
+          <span class="amount-preview-value" id="withdrawPreviewAmount">$0.00</span>
+        </div>
+        <div class="amount-preview-row">
+          <span class="amount-preview-label">Target</span>
+          <span class="amount-preview-value" id="withdrawTargetAmount">$0.00</span>
+        </div>
+      </div>
+
+      <input type="hidden" id="withdrawPotId">
+
+      <!-- Amount to Withdraw -->
+      <div class="form-group">
+        <label class="form-label" for="amountToWithdraw">Amount to Withdraw</label>
+        <input
+          type="number"
+          id="amountToWithdraw"
+          class="form-input"
+          placeholder="0.00"
+          step="0.01"
+          min="0.01"
+          required
+        >
+      </div>
+
+      <p style="font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Pot balance: <strong id="potBalance">$0.00</strong>
+      </p>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelWithdrawBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmWithdrawBtn">Confirm Withdrawal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deletePotModal" aria-hidden="true">
+    <div class="modal" role="alertdialog" aria-labelledby="deletePotTitle" aria-describedby="deletePotDesc">
+      <div class="modal-header">
+        <h2 class="modal-title" id="deletePotTitle">Delete Pot</h2>
+        <button class="modal-close" id="closeDeletePotModal" aria-label="Close modal">
+          <img src="../assets/images/icon-close-modal.svg" alt="">
+        </button>
+      </div>
+
+      <p id="deletePotDesc" style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Are you sure you want to delete '<span id="deletePotName"></span>'?
+      </p>
+
+      <p style="color: var(--color-green); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+        <strong>$<span id="returnAmount">0.00</span></strong> will be returned to your current balance.
+      </p>
+
+      <input type="hidden" id="deletePotId">
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelDeletePotBtn">No, Go Back</button>
+        <button type="button" class="btn btn-primary" style="background-color: var(--color-red);" id="confirmDeletePotBtn">
+          Yes, Confirm Deletion
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/pots.js"></script>
+</body>
+</html>

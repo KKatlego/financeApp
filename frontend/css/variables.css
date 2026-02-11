@@ -1,0 +1,122 @@
+/* ============================================
+   Personal Finance App - CSS Design System
+   ============================================ */
+
+:root {
+  /* === Colors === */
+
+  /* Primary Colors */
+  --color-primary: #201F24;
+  --color-primary-hover: #1a1a1e;
+
+  /* Background Colors */
+  --bg-main: #F8F4F0;
+  --bg-white: #FFFFFF;
+  --bg-sidebar: #201F24;
+  --bg-beige: #F8F4F0;
+
+  /* Text Colors */
+  --text-primary: #201F24;
+  --text-secondary: #696868;
+  --text-tertiary: #888888;
+  --text-white: #FFFFFF;
+  --text-gray: #647484;
+
+  /* Status Colors */
+  --color-green: #277C78;
+  --color-green-light: rgba(39, 124, 120, 0.1);
+  --color-red: #C94736;
+  --color-red-light: rgba(201, 71, 54, 0.1);
+  --color-yellow: #D19900;
+  --color-yellow-light: rgba(209, 153, 0, 0.1);
+
+  /* Category Theme Colors */
+  --theme-entertainment: #277C78;
+  --theme-bills: #82C9D7;
+  --theme-dining: #F2CDAC;
+  --theme-personal-care: #626070;
+  --theme-education: #826CB0;
+  --theme-groceries: #C94736;
+  --theme-transportation: #D19900;
+  --theme-lifestyle: #008C76;
+  --theme-shopping: #E2B93D;
+  --theme-general: #647484;
+
+  /* Border Colors */
+  --border-light: #E5E5E5;
+  --border-medium: #D4D4D4;
+  --border-dark: #B4B4B4;
+
+  /* === Typography === */
+  --font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 2rem;       /* 32px */
+  --text-4xl: 2.5rem;     /* 40px */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* === Spacing === */
+  --space-1: 0.25rem;     /* 4px */
+  --space-2: 0.5rem;      /* 8px */
+  --space-3: 0.75rem;     /* 12px */
+  --space-4: 1rem;        /* 16px */
+  --space-5: 1.25rem;     /* 20px */
+  --space-6: 1.5rem;      /* 24px */
+  --space-8: 2rem;        /* 32px */
+  --space-10: 2.5rem;     /* 40px */
+  --space-12: 3rem;       /* 48px */
+  --space-16: 4rem;       /* 64px */
+
+  /* === Border Radius === */
+  --radius-sm: 0.375rem;  /* 6px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* === Transitions === */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* === Layout === */
+  --sidebar-width: 18.75rem;  /* 300px */
+  --sidebar-collapsed: 5.5rem; /* 88px */
+  --header-height: 4rem;      /* 64px */
+  --max-content-width: 76.5rem; /* 1224px */
+
+  /* === Z-Index === */
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-sidebar: 50;
+  --z-tooltip: 300;
+}
+
+/* === Dark Mode Variables (future) === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Can be extended for dark mode support */
+  }
+}

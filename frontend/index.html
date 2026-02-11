@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/favicon-32x32.png">
+  <title>Personal Finance App - Overview</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <img src="./assets/images/logo-large.svg" alt="" aria-hidden="true">
+          <span>finance</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list" role="menubar">
+          <li class="nav-item" role="none">
+            <a href="index.html" class="nav-link active" role="menuitem" aria-current="page">
+              <img src="./assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+              <span>Overview</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pages/transactions.html" class="nav-link" role="menuitem">
+              <img src="./assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+              <span>Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pages/budgets.html" class="nav-link" role="menuitem">
+              <img src="./assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+              <span>Budgets</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pages/pots.html" class="nav-link" role="menuitem">
+              <img src="./assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+              <span>Pots</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a href="pages/recurring.html" class="nav-link" role="menuitem">
+              <img src="./assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+              <span>Recurring Bills</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="minimize-btn" id="minimizeBtn" aria-label="Toggle sidebar" aria-expanded="true">
+          <img src="./assets/images/icon-minimize-menu.svg" alt="" aria-hidden="true">
+          <span>Minimize Menu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <header class="page-header">
+        <h1 class="page-title">Overview</h1>
+      </header>
+
+      <!-- Balance Cards - Will be populated by JS -->
+      <section class="balance-grid" aria-label="Balance summary">
+        <div class="balance-card current">
+          <span class="balance-label">Current Balance</span>
+          <span class="balance-amount" id="currentBalance">$0.00</span>
+        </div>
+        <div class="balance-card income">
+          <span class="balance-label">Income</span>
+          <span class="balance-amount" id="totalIncome">$0.00</span>
+        </div>
+        <div class="balance-card expenses">
+          <span class="balance-label">Expenses</span>
+          <span class="balance-amount" id="totalExpenses">$0.00</span>
+        </div>
+      </section>
+
+      <!-- Content Grid -->
+      <div class="content-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6);">
+        <!-- Pots Summary -->
+        <section class="card" aria-labelledby="pots-title">
+          <div class="card-header">
+            <h2 class="card-title" id="pots-title">Pots</h2>
+            <a href="pages/pots.html" class="btn btn-link">
+              See Details
+              <img src="./assets/images/icon-caret-right.svg" alt="" aria-hidden="true">
+            </a>
+          </div>
+          <div id="potsSummary">
+            <!-- Populated by JS -->
+            <p class="text-gray">Loading pots...</p>
+          </div>
+        </section>
+
+        <!-- Budgets Summary -->
+        <section class="card" aria-labelledby="budgets-title">
+          <div class="card-header">
+            <h2 class="card-title" id="budgets-title">Budgets</h2>
+            <a href="pages/budgets.html" class="btn btn-link">
+              See Details
+              <img src="./assets/images/icon-caret-right.svg" alt="" aria-hidden="true">
+            </a>
+          </div>
+          <div id="budgetsSummary">
+            <!-- Populated by JS -->
+            <p class="text-gray">Loading budgets...</p>
+          </div>
+        </section>
+
+        <!-- Transactions Summary -->
+        <section class="card" style="grid-column: span 2;" aria-labelledby="transactions-title">
+          <div class="card-header">
+            <h2 class="card-title" id="transactions-title">Transactions</h2>
+            <a href="pages/transactions.html" class="btn btn-link">
+              View All
+              <img src="./assets/images/icon-caret-right.svg" alt="" aria-hidden="true">
+            </a>
+          </div>
+          <div id="transactionsSummary" class="transaction-list">
+            <!-- Populated by JS -->
+            <p class="text-gray">Loading transactions...</p>
+          </div>
+        </section>
+
+        <!-- Recurring Bills Summary -->
+        <section class="card" style="grid-column: span 2;" aria-labelledby="recurring-title">
+          <div class="card-header">
+            <h2 class="card-title" id="recurring-title">Recurring Bills</h2>
+            <a href="pages/recurring.html" class="btn btn-link">
+              See Details
+              <img src="./assets/images/icon-caret-right.svg" alt="" aria-hidden="true">
+            </a>
+          </div>
+          <div id="recurringSummary" class="bills-summary">
+            <!-- Populated by JS -->
+            <p class="text-gray">Loading recurring bills...</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="./js/utils.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
