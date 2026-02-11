@@ -50,22 +50,23 @@ pipeline {
                         if exist deploy-package rmdir /s /q deploy-package
                         mkdir deploy-package
 
+                        REM Create exclusion file for xcopy
+                        echo node_modules\ > exclude.txt
+                        echo .env >> exclude.txt
+                        echo .git\ >> exclude.txt
+                        echo *.log >> exclude.txt
+
                         REM Copy frontend (all files and folders)
-                        xcopy /e /i /y frontend deploy-package\\frontend
+                        xcopy /e /i /y /exclude:exclude.txt frontend deploy-package\\frontend
 
-                        REM Copy backend files (excluding node_modules)
-                        mkdir deploy-package\\backend
-                        copy /y backend\\package.json deploy-package\\backend\\
-                        copy /y backend\\package-lock.json deploy-package\\backend\\
-                        copy /y backend\\server.js deploy-package\\backend\\
-                        copy /y backend\\db.js deploy-package\\backend\\
-                        copy /y backend\\.htaccess deploy-package\\backend\\
+                        REM Copy backend (ALL files dynamically, excluding node_modules and .env)
+                        xcopy /e /i /y /exclude:exclude.txt backend deploy-package\\backend
 
-                        REM Copy backend subdirectories
-                        xcopy /e /i /y backend\\data deploy-package\\backend\\data
-                        xcopy /e /i /y backend\\database deploy-package\\backend\\database
+                        REM Clean up exclusion file
+                        del exclude.txt
 
                         echo Package created successfully!
+                        echo Listing all files in deployment package:
                         dir /s /b deploy-package
                     """
 
