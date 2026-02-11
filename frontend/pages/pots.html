@@ -292,6 +292,30 @@
       background-color: var(--bg-beige);
       border-color: var(--border-medium);
     }
+
+    /* Theme selector */
+    .theme-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
+    .theme-option {
+      width: 2rem;
+      height: 2rem;
+      border-radius: var(--radius-full);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .theme-option:hover {
+      transform: scale(1.1);
+    }
+
+    .theme-option.selected {
+      border-color: var(--text-primary);
+    }
   </style>
 </head>
 <body>
