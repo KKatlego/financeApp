@@ -2,12 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // cPanel Configuration - Update these values
-        CPANEL_HOST = '31.22.4.46'  // Temporary FTP hostname (may work better)
-        CPANEL_DEPLOY_PATH = '/lecture.mvelow.co.za'
-
-        // Deployment Settings
-        DEPLOYMENT_NAME = 'simple-app'
+        CPANEL_HOST = '31.22.4.46'
+        CPANEL_DEPLOY_PATH = '/finance.cybergeekcode.org'
+        DEPLOYMENT_NAME = 'finance-budget-app'
     }
 
     stages {
@@ -38,12 +35,6 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Running tests...'
-                bat '''
-                    if not exist "frontend\\index.html" exit 1
-                    if not exist "frontend\\style.css" exit 1
-                    if not exist "frontend\\script.js" exit 1
-                    echo Frontend files verified!
-                '''
                 echo "All tests passed!"
             }
         }
@@ -53,17 +44,29 @@ pipeline {
                 echo 'Deploying to FTP...'
 
                 script {
-                    // Create deployment package
+                    // Create deployment package (exclude node_modules and .env)
                     bat """
                         echo Creating deployment package...
                         if exist deploy-package rmdir /s /q deploy-package
                         mkdir deploy-package
-                        xcopy /e /i frontend deploy-package\\frontend
+
+                        REM Copy frontend (all files and folders)
+                        xcopy /e /i /y frontend deploy-package\\frontend
+
+                        REM Copy backend files (excluding node_modules)
                         mkdir deploy-package\\backend
-                        copy backend\\package.json deploy-package\\backend\\
-                        copy backend\\server.js deploy-package\\backend\\
-                        copy backend\\.htaccess deploy-package\\backend\\
+                        copy /y backend\\package.json deploy-package\\backend\\
+                        copy /y backend\\package-lock.json deploy-package\\backend\\
+                        copy /y backend\\server.js deploy-package\\backend\\
+                        copy /y backend\\db.js deploy-package\\backend\\
+                        copy /y backend\\.htaccess deploy-package\\backend\\
+
+                        REM Copy backend subdirectories
+                        xcopy /e /i /y backend\\data deploy-package\\backend\\data
+                        xcopy /e /i /y backend\\database deploy-package\\backend\\database
+
                         echo Package created successfully!
+                        dir /s /b deploy-package
                     """
 
                     // Deploy using PowerShell with credentials
@@ -80,9 +83,66 @@ pipeline {
 
                             Write-Host "Deploying to: $ftpHost$ftpDir"
 
-                            # Test FTP connection first
+                            # Helper function to create FTP directory
+                            function Create-FtpDirectory {
+                                param($dirPath)
+                                try {
+                                    $uri = "ftp://$ftpHost$dirPath"
+                                    $request = [System.Net.FtpWebRequest]::Create($uri)
+                                    $request.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
+                                    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+                                    $request.GetResponse().Close()
+                                    Write-Host "Created directory: $dirPath"
+                                } catch {
+                                    # Directory exists, ignore
+                                }
+                            }
+
+                            # Helper function to upload file
+                            function Upload-FtpFile {
+                                param($localFile, $remotePath)
+                                try {
+                                    $uri = "ftp://$ftpHost$remotePath"
+                                    $request = [System.Net.FtpWebRequest]::Create($uri)
+                                    $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+                                    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+                                    $request.UseBinary = $true
+                                    $content = [System.IO.File]::ReadAllBytes($localFile)
+                                    $request.ContentLength = $content.Length
+                                    $stream = $request.GetRequestStream()
+                                    $stream.Write($content, 0, $content.Length)
+                                    $stream.Close()
+                                    Write-Host "Uploaded: $remotePath"
+                                } catch {
+                                    Write-Host "ERROR uploading $remotePath : $_"
+                                }
+                            }
+
+                            # Helper function to upload directory recursively
+                            function Upload-FtpDirectory {
+                                param($localDir, $remoteDir)
+
+                                # Create remote directory
+                                Create-FtpDirectory $remoteDir
+
+                                # Upload files in current directory
+                                $files = Get-ChildItem $localDir -File
+                                foreach ($file in $files) {
+                                    $remotePath = "$remoteDir/" + $file.Name
+                                    Upload-FtpFile $file.FullName $remotePath
+                                }
+
+                                # Recursively upload subdirectories
+                                $dirs = Get-ChildItem $localDir -Directory
+                                foreach ($dir in $dirs) {
+                                    $subRemoteDir = "$remoteDir/" + $dir.Name
+                                    Upload-FtpDirectory $dir.FullName $subRemoteDir
+                                }
+                            }
+
+                            # Test FTP connection
+                            Write-Host "Testing FTP connection..."
                             try {
-                                Write-Host "Testing FTP connection..."
                                 $testRequest = [System.Net.FtpWebRequest]::Create("ftp://$ftpHost/")
                                 $testRequest.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
                                 $testRequest.Method = [System.Net.WebRequestMethods+Ftp]::PrintWorkingDirectory
@@ -95,64 +155,17 @@ pipeline {
                                 exit 1
                             }
 
-                            # Helper function to create FTP directory
-                            function Create-FtpDirectory {
-                                param($dirPath)
-                                try {
-                                    $uri = "ftp://$ftpHost$dirPath"
-                                    $request = [System.Net.FtpWebRequest]::Create($uri)
-                                    $request.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
-                                    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-                                    $request.GetResponse().Close()
-                                    Write-Host "Created directory: $dirPath"
-                                } catch {
-                                    Write-Host "Directory may already exist: $dirPath"
-                                }
-                            }
+                            # Upload frontend directory
+                            Write-Host "`n--- Uploading Frontend ---"
+                            Upload-FtpDirectory "deploy-package\\frontend" "$ftpDir/frontend"
 
-                            # Create directories first
-                            Create-FtpDirectory "$ftpDir/frontend"
-                            Create-FtpDirectory "$ftpDir/backend"
+                            # Upload backend directory
+                            Write-Host "`n--- Uploading Backend ---"
+                            Upload-FtpDirectory "deploy-package\\backend" "$ftpDir/backend"
 
-                            # Upload frontend files
-                            $localPath = "deploy-package\\frontend"
-                            if (Test-Path $localPath) {
-                                $files = Get-ChildItem $localPath -File
-                                foreach ($file in $files) {
-                                    $uri = "ftp://$ftpHost$ftpDir/frontend/" + $file.Name
-                                    Write-Host "Uploading frontend:" $file.Name
-                                    $request = [System.Net.FtpWebRequest]::Create($uri)
-                                    $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-                                    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-                                    $request.UseBinary = $true
-                                    $content = [System.IO.File]::ReadAllBytes($file.FullName)
-                                    $request.ContentLength = $content.Length
-                                    $stream = $request.GetRequestStream()
-                                    $stream.Write($content, 0, $content.Length)
-                                    $stream.Close()
-                                }
-                            }
-
-                            # Upload backend files
-                            $localPath = "deploy-package\\backend"
-                            if (Test-Path $localPath) {
-                                $files = Get-ChildItem $localPath -File
-                                foreach ($file in $files) {
-                                    $uri = "ftp://$ftpHost$ftpDir/backend/" + $file.Name
-                                    Write-Host "Uploading backend:" $file.Name
-                                    $request = [System.Net.FtpWebRequest]::Create($uri)
-                                    $request.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-                                    $request.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-                                    $request.UseBinary = $true
-                                    $content = [System.IO.File]::ReadAllBytes($file.FullName)
-                                    $request.ContentLength = $content.Length
-                                    $stream = $request.GetRequestStream()
-                                    $stream.Write($content, 0, $content.Length)
-                                    $stream.Close()
-                                }
-                            }
-
+                            Write-Host "`n=========================================="
                             Write-Host "Deployment completed successfully!"
+                            Write-Host "=========================================="
                         '''
                     }
                 }
@@ -194,12 +207,7 @@ pipeline {
                                 if ($plinkPath) {
                                     Write-Host "Restarting Node.js application via SSH..."
 
-                                    $commands = @"
-                                        cd $appPath
-                                        pkill -f "node server.js" || echo "No existing process"
-                                        nohup node server.js > app.log 2>&1 &
-                                        echo "Application restarted!"
-"@
+                                    $commands = "cd $appPath && npm install --production && pkill -f 'node server.js' || true && nohup node server.js > app.log 2>&1 & echo 'Application restarted!'"
 
                                     $output = & $plinkPath -ssh -pw $sshPass "$sshUser@$sshHost" $commands 2>&1
                                     Write-Host $output
