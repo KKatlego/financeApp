@@ -10,8 +10,14 @@
     /* Budget-specific styles */
     .budgets-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: var(--space-4);
+    }
+
+    @media (max-width: 768px) {
+      .budgets-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .budget-card {
@@ -360,6 +366,42 @@
       </div>
     </main>
   </div>
+
+  <!-- Bottom Navigation (Tablet/Mobile) -->
+  <nav class="bottom-nav" aria-label="Mobile navigation">
+    <ul class="nav-list">
+      <li class="nav-item">
+        <a href="../index.html" class="nav-link">
+          <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
+          <span>Overview</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="transactions.html" class="nav-link">
+          <img src="../assets/images/icon-nav-transactions.svg" alt="" aria-hidden="true">
+          <span>Transactions</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="budgets.html" class="nav-link active" aria-current="page">
+          <img src="../assets/images/icon-nav-budgets.svg" alt="" aria-hidden="true">
+          <span>Budgets</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="pots.html" class="nav-link">
+          <img src="../assets/images/icon-nav-pots.svg" alt="" aria-hidden="true">
+          <span>Pots</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="recurring.html" class="nav-link">
+          <img src="../assets/images/icon-nav-recurring-bills.svg" alt="" aria-hidden="true">
+          <span>Bills</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
 
   <!-- Add/Edit Budget Modal -->
   <div class="modal-overlay" id="budgetModal" aria-hidden="true">
