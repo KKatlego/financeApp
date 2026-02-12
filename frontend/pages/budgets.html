@@ -370,11 +370,15 @@
   <!-- Bottom Navigation (Tablet/Mobile) -->
   <nav class="bottom-nav" aria-label="Mobile navigation">
     <ul class="nav-list">
-      <li class="nav-item">
-        <a href="../index.html" class="nav-link">
+      <li class="nav-item nav-item-menu">
+        <button class="nav-link" id="overviewMenuBtn">
           <img src="../assets/images/icon-nav-overview.svg" alt="" aria-hidden="true">
           <span>Overview</span>
-        </a>
+        </button>
+        <div class="nav-dropdown" id="overviewDropdown">
+          <a href="../index.html" class="dropdown-item">Home</a>
+          <button class="dropdown-item" id="mobileLogoutBtn">Logout</button>
+        </div>
       </li>
       <li class="nav-item">
         <a href="transactions.html" class="nav-link">

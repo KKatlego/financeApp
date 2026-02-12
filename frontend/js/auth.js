@@ -66,11 +66,38 @@ const Auth = {
 
   // Setup logout button handler
   setupLogoutHandler() {
+    // Desktop sidebar logout button
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         this.logout();
+      });
+    }
+
+    // Mobile dropdown logout button
+    const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+    if (mobileLogoutBtn) {
+      mobileLogoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.logout();
+      });
+    }
+
+    // Mobile dropdown toggle
+    const overviewMenuBtn = document.getElementById('overviewMenuBtn');
+    const overviewDropdown = document.getElementById('overviewDropdown');
+    if (overviewMenuBtn && overviewDropdown) {
+      overviewMenuBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        overviewDropdown.classList.toggle('show');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!overviewMenuBtn.contains(e.target) && !overviewDropdown.contains(e.target)) {
+          overviewDropdown.classList.remove('show');
+        }
       });
     }
   },
